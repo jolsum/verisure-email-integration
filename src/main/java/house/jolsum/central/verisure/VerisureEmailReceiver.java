@@ -1,7 +1,6 @@
 package house.jolsum.central.verisure;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import javax.mail.MessagingException;
 import org.slf4j.Logger;
@@ -14,20 +13,21 @@ public class VerisureEmailReceiver {
   private MailClient mailClient;
   private List<VerisureEventListener> listeners = new CopyOnWriteArrayList<>();
 
-  public VerisureEmailReceiver(Map<String, String> properties) throws MessagingException {
+  public VerisureEmailReceiver() throws MessagingException {
 
     this.mailClient =
         new MailClient(
-            properties.get("EMAIL_USER"),
-            properties.get("EMAIL_PASSWORD"),
-            properties.get("EMAIL_INCOMING_URL"),
-            properties.get("EMAIL_INCOMING_PORT"));
+            getEnvOrThrow("EMAIL_USER"),
+            getEnvOrThrow("EMAIL_PASSWORD"),
+            getEnvOrThrow("EMAIL_HOST"),
+            getEnvOrThrow("EMAIL_PORT"));
 
     logger.info("Mail receiver initialized");
   }
 
-  public void addListener(VerisureEventListener listener) {
+  public VerisureEmailReceiver addListener(VerisureEventListener listener) {
     listeners.add(listener);
+    return this;
   }
 
   public void start() {
@@ -49,18 +49,24 @@ public class VerisureEmailReceiver {
     }
   }
 
+  private static String getEnvOrThrow(String key) {
+    String value = System.getenv(key);
+    if (value == null) {
+      throw new RuntimeException("Missing data in environment variable " + key);
+    }
+    return value;
+  }
+
   public static void main(String[] args) {
     try {
-      Map<String, String> envProps = System.getenv();
-
-      VerisureEmailReceiver receiver = new VerisureEmailReceiver(envProps);
-      receiver.addListener(
-          new LogicMachineReporter(
-                  envProps.get("LOGICMACHINE_HOST"),
-                  envProps.get("LOGICMACHINE_USER"),
-                  envProps.get("LOGICMACHINE_PASSWORD"))
-              .setAlarmStateAddress(envProps.get("LOGICMACHINE_ALARM_STATE_ADDRESS")));
-      receiver.start(); // blocking call
+      new VerisureEmailReceiver()
+          .addListener(
+              new LogicMachineReporter(
+                      getEnvOrThrow("LOGICMACHINE_HOST"),
+                      getEnvOrThrow("LOGICMACHINE_USER"),
+                      getEnvOrThrow("LOGICMACHINE_PASSWORD"))
+                  .setAlarmStateAddress(getEnvOrThrow("LOGICMACHINE_ALARM_STATE_ADDRESS")))
+          .start(); // blocking call
 
     } catch (Exception e) {
       logger.error("Got exception in main method; exiting", e);
