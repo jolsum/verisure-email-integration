@@ -5,7 +5,7 @@
 
 	<groupId>jolsum</groupId>
 	<artifactId>verisure-email-integration</artifactId>
-	<version>0.0.1</version>
+	<version>0.0.2</version>
 	<packaging>jar</packaging>
 
 	<name>verisure-email-integration</name>

@@ -76,19 +76,18 @@ public class MailClient implements AutoCloseable {
         new MessageCountAdapter() {
           @Override
           public void messagesAdded(MessageCountEvent e) {
-            log.info("{} mails received", e.getMessages().length);
-            for (Message msg : e.getMessages()) {
-              try {
+            try {
+              log.info("{} mails received", e.getMessages().length);
+              for (Message msg : e.getMessages()) {
                 log.debug(
                     "Received mail from: {}, subject: {}",
                     formatAddresses(msg.getFrom()),
                     msg.getSubject());
                 Mail mail = createMail(msg);
                 fireMailReceivedListeners(mail);
-
-              } catch (IOException | MessagingException ex) {
-                log.error("Failed to process received mails", ex);
               }
+            } catch (Exception ex) {
+              log.error("Failed to process received mails", ex);
             }
           }
         });
@@ -126,7 +125,9 @@ public class MailClient implements AutoCloseable {
     try {
       while (!Thread.interrupted()) {
         IMAPFolder folder = (IMAPFolder) inbox;
+        log.info("idle()");
         folder.idle();
+        log.info("idle() returned");
         try {
           Thread.sleep(POLL_INBOX_RATE_MS);
         } catch (InterruptedException ex) {
